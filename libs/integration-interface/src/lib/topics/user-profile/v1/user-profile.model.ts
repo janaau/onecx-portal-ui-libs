@@ -46,6 +46,10 @@ export interface UserProfileAccountSettings {
 }
 
 export interface UserProfileAccountSettingsLocaleAndTimeSettings {
+  /**
+   * New locales array for multi-language support. If undefined, fallback to old locale. If empty, use browser settings.
+   */
+  locales?: string[]
   locale?: string
   timezone?: string
 }
