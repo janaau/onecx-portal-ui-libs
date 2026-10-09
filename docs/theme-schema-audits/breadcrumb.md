@@ -41,7 +41,7 @@ nav.p-breadcrumb                     (root)
 | ----------- | -------- | ----------------------------------------- | ------ |
 | (root)      | specific | `defaultVariant` (flat, no child nesting) | `padding`, `background`, `gap`, `transition` |
 | `item`      | specific | `defaultVariant` → `defaultState` + `hover` + `focus` | `color`, `background`, `border{radius,width,color}`, `gap`, `icon{color,size}`, `label.font{weight,size}`, `focusRing`, `paddingX`, `paddingY` |
-| `separator` | specific | `defaultVariant` only (stateless)          | `color`, `width` |
+| `separator` | specific | `defaultVariant` only (stateless)          | `color`, `width`, `symbol` |
 
 The home item is not modeled separately — it renders through the same `item` token set (PrimeNG's
 breadcrumb design tokens only define `root`, `item`, and `separator` sections, confirmed in
@@ -70,7 +70,7 @@ breadcrumb
 │     color, background, border{radius,width,color}, gap, icon{color,size},
 │     label.font{weight,size}, focusRing, paddingX, paddingY
 └── separator (specific; defaultVariant only — no states)
-      color, width
+      color, width, symbol
 ```
 
 Confirmed by the user:
@@ -138,17 +138,38 @@ Baseline defaults required and present:
 | item | `item...focus.{background,border,color,icon}` | `{{primitives.defaultVariant.state.focus.defaultSeverity.*}}` |
 | separator | `separator.defaultVariant.color` | `{{primitives.defaultVariant.defaultState.defaultSeverity.border.color}}` |
 | separator | `separator.defaultVariant.width` | `{{primitives.border.width.md}}` |
+| separator | `separator.defaultVariant.symbol` | `">"` (quoted CSS string) |
 
 Named states (`hover`, `focus`) carry only the tokens that differ from `defaultState` (the
 per-state color/background/border/icon set). The removed `active`/`disabled` states no longer
 appear anywhere in the shape, defaults, or snapshot.
 
+**`separator.symbol`** (added in this pass) is the themeable separator glyph — one shared symbol
+for every breadcrumb, defaulting to `>` (PrimeNG's component page documents `>` and `/` as the
+cases). It is **wired through the CSS mapper, not the preset**, for two reasons:
+
+1. PrimeNG renders the divider as a chevron `<svg>` and its `breadcrumb.separator` preset only
+   exposes `color` — there is no preset token for the glyph.
+2. The value is stored as a **quoted** CSS string (`">"`, not `>`). The theme pipeline writes
+   `--onecx-theme-*` custom-property values **unquoted** (`setProperty(name, value)`), and the CSS
+   mapper emits `content: var(--…)`. A `content` value only renders a glyph when it resolves to a
+   valid (quoted) `<string>`, so the token itself carries the quotes. This is the only token in the
+   tree whose value embeds quotes, a deliberate tradeoff to keep the generic variable injector
+   unchanged.
+
+The mapper (`css-rules/usages/breadcrumb.rules.ts`) renders it by hiding the chevron
+(`.p-breadcrumb-separator svg { display: none }`) and emitting
+`.p-breadcrumb-separator::after { content: var(--…symbol) }`. The `::after` text inherits the
+separator `color` PrimeNG already sets, so no extra color rule is needed.
+
 ## Step 8 — Implementation changes
 
 - **Schema:** `item.ts` restructured (dropped `active`/`disabled`). Test/spec files intentionally
-  left unchanged during this step (Step 10 covers them).
+  left unchanged during this step (Step 10 covers them). `separator.ts` gained the `symbol` token
+  (shape + default `">"`).
 - **Mapper:** `css-rules/usages/breadcrumb.rules.ts` enhanced to consume the newly-kept tokens and
-  the focus state via pseudo-class rules. `mapping-rules` untouched.
+  the focus state via pseudo-class rules, plus the separator symbol (hide chevron `svg`,
+  `::after { content: var(--…symbol) }`). `mapping-rules` untouched.
 - **Type-check:** both `integration-interface` and `angular-utils` `tsc --noEmit` pass clean — the
   new `from` paths are valid `ThemePath`s.
 
@@ -162,7 +183,9 @@ appear anywhere in the shape, defaults, or snapshot.
   the `item.defaultVariant.active` and `item.defaultVariant.disabled` blocks; all other values are
   unchanged. **No hand-edits** to the `.snap`.
 - **Result:** `nx test integration-interface` — breadcrumb suite **3 passed** (parse, full
-  `parse({})` snapshot, `expectDefaultsMatchShape`), snapshot **updated** and committed.
+  `parse({})` snapshot, `expectDefaultsMatchShape`), snapshot **updated** and committed. The
+  `symbol` addition re-registers the same snapshot with the new
+  `separator.defaultVariant.symbol` key.
 
 ## Summary
 
@@ -177,6 +200,9 @@ dead-weight cleanup** the user requested:
    rules consume the hover and focus `background`/`border`/`color`/`icon` tokens. PrimeNG's
    breadcrumb item colorScheme has no focus/border-color props, so pseudo-class CSS (the
    `tabs`-style convention) is the correct mechanism rather than preset-token mapping.
+3. **`separator.symbol` added** — a single themeable separator glyph (default `>`) shared by every
+   breadcrumb, driven through the CSS mapper (hide the chevron `svg`, render `::after content`
+   from the token). See the note in Step 7 for why it lives in CSS and uses a quoted value.
 
 Net result: smaller, honest schema (no dead states), a mapper that actually emits every declared
-item token, clean type-check, and a green updated snapshot.
+item token, a themeable separator symbol, clean type-check, and a green updated snapshot.

@@ -74,6 +74,7 @@ Object {
   "separator": Object {
     "defaultVariant": Object {
       "color": "{{primitives.defaultVariant.defaultState.defaultSeverity.border.color}}",
+      "symbol": "\\">\\"",
       "width": "{{primitives.border.width.md}}",
     },
   },

@@ -86,4 +86,23 @@ export const breadcrumbCssRules: CssRule[] = [
       },
     ],
   },
+  // Separator symbol: PrimeNG renders the divider as a chevron `<svg>` and its
+  // preset only exposes `separator.color`, so the glyph is driven here. The
+  // chevron is hidden and a text glyph is rendered from the themeable
+  // `separator.symbol` token (stored as a quoted CSS string — e.g. '">" — because
+  // the theme pipeline writes `--onecx-theme-*` values unquoted and
+  // `content: var(--…)` only renders a glyph for a valid quoted string).
+  {
+    selector: '.p-breadcrumb .p-breadcrumb-separator svg',
+    declarations: [{ property: 'display', value: 'none' }],
+  },
+  {
+    selector: '.p-breadcrumb .p-breadcrumb-separator::after',
+    declarations: [
+      {
+        property: 'content',
+        from: 'usages.breadcrumb.separator.defaultVariant.symbol',
+      },
+    ],
+  },
 ]

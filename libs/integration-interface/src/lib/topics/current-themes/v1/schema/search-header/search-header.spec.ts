@@ -1,5 +1,6 @@
-import { expectDefaultsMatchShape } from './test-utils'
-import { searchHeader, searchHeaderDefaults } from './search-header'
+import { expectDefaultsMatchShape } from '../test-utils'
+
+import { searchHeader, searchHeaderDefaults } from './index'
 
 describe('searchHeader schema', () => {
   const parsed = searchHeader.parse({})
